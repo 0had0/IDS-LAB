@@ -1,65 +1,50 @@
 """Python script to train the model"""
+import sys
+
 import joblib
 import numpy as np
 import pandas as pd
-from config import Location, ModelParams
 from prefect import flow, task
-from sklearn.model_selection import GridSearchCV
-from sklearn.svm import SVC
+
+from architectures import get_architecture
+from config import Location
+from utils import Model
 
 
 @task
-def get_processed_data(data_location: str):
+def get_processed_data(train_data_location: str, test_data_location: str):
     """Get processed data from a specified location
 
     Parameters
     ----------
-    data_location : str
-        Location to get the data
+    train_data_location : str
+        Location to get the train data
+    test_data_location : str
+        Location to get the test data
     """
-    return joblib.load(data_location)
+    return joblib.load(train_data_location), joblib.load(test_data_location)
 
 
 @task
-def train_model(
-    model_params: ModelParams, X_train: pd.DataFrame, y_train: pd.Series
-):
-    """Train the model
-
-    Parameters
-    ----------
-    model_params : ModelParams
-        Parameters for the model
-    X_train : pd.DataFrame
-        Features for training
-    y_train : pd.Series
-        Label for training
-    """
-    grid = GridSearchCV(SVC(), model_params.dict(), refit=True, verbose=3)
-    grid.fit(X_train, y_train)
-    return grid
-
-
-@task
-def predict(grid: GridSearchCV, X_test: pd.DataFrame):
+def predict(model: Model, X_test: pd.DataFrame):
     """_summary_
 
     Parameters
     ----------
-    grid : GridSearchCV
+    model : one of the architectures Models
     X_test : pd.DataFrame
         Features for testing
     """
-    return grid.predict(X_test)
+    return model.predict(X_test)
 
 
 @task
-def save_model(model: GridSearchCV, save_path: str):
+def save_model(model: Model, save_path: str):
     """Save model to a specified location
 
     Parameters
     ----------
-    model : GridSearchCV
+    model : one of the architectures Models
     save_path : str
     """
     joblib.dump(model, save_path)
@@ -79,24 +64,24 @@ def save_predictions(predictions: np.array, save_path: str):
 
 @flow
 def train(
+    model,
     location: Location = Location(),
-    svc_params: ModelParams = ModelParams(),
 ):
     """Flow to train the model
 
     Parameters
     ----------
-    location : Location, optional
-        Locations of inputs and outputs, by default Location()
-    svc_params : ModelParams, optional
-        Configurations for training the model, by default ModelParams()
+    location : Location instance,
+        Locations of inputs and outputs
+    model : Model instance,
+        one of CentralizedModel, FedratedModel, SplitModel
     """
-    data = get_processed_data(location.data_process)
-    model = train_model(svc_params, data["X_train"], data["y_train"])
-    predictions = predict(model, data["X_test"])
+    train, test = get_processed_data(location.train_data, location.test_data)
+    model.train(train["X"], train["y"])
+    predictions = predict(model, test["X"])
     save_model(model, save_path=location.model)
     save_predictions(predictions, save_path=location.data_final)
 
 
 if __name__ == "__main__":
-    train()
+    train(**get_architecture(sys.argv[1]))
