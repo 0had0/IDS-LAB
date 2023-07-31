@@ -4,6 +4,7 @@ create Pydantic models
 from typing import List
 
 from pydantic import BaseModel, validator
+from scipy.stats import randint, uniform
 
 
 def must_be_non_negative(v: float) -> float:
@@ -32,12 +33,42 @@ def must_be_non_negative(v: float) -> float:
 class Location(BaseModel):
     """Specify the locations of inputs and outputs"""
 
-    data_raw: str = "data/raw/iris.csv"
-    data_process: str = "data/processed/xy.pkl"
-    data_final: str = "data/final/predictions.pkl"
-    model: str = "models/svc.pkl"
-    input_notebook: str = "notebooks/analyze_results.ipynb"
-    output_notebook: str = "notebooks/results.ipynb"
+    model: str = ""
+    predictions: str = ""
+    # input_notebook: str
+    # output_notebook: str
+    labels: str = "data/processed/labels.pkl"
+    processed_data: str = "data/processed/dataset.csv"
+    train_data: str = "data/processed/train.pkl"
+    test_data: str = "data/final/test.pkl"
+
+
+CentralizedLocation = Location(
+    train_data="data/processed/train.pkl",
+    model="model/centralized_model.pkl",
+    predictions="data/final/centralized_predictions.pkl",
+)
+
+CentralizedModelParams = {
+    "colsample_bytree": uniform(0.7, 0.3),
+    "gamma": uniform(0, 0.5),
+    "learning_rate": uniform(0.03, 0.3),
+    "max_depth": randint(2, 6),
+    "n_estimators": randint(100, 150),
+    "subsample": uniform(0.6, 0.4),
+}
+
+FederatedLocation = Location(
+    train_data="data/processed/train.pkl",
+    model="model/federated_model.pkl",
+    predictions="data/final/fedrated_predictions.pkl",
+)
+
+SplitLocation = Location(
+    train_data="data/processed/train.pkl",
+    model="model/split_model.pkl",
+    predictions="data/final/split_predictions.pkl",
+)
 
 
 class ProcessConfig(BaseModel):
@@ -53,11 +84,5 @@ class ProcessConfig(BaseModel):
 
 
 class ModelParams(BaseModel):
-    """Specify the parameters of the `train` flow"""
-
     C: List[float] = [0.1, 1, 10, 100, 1000]
     gamma: List[float] = [1, 0.1, 0.01, 0.001, 0.0001]
-
-    _validated_fields = validator("*", allow_reuse=True, each_item=True)(
-        must_be_non_negative
-    )

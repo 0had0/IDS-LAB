@@ -1,32 +1,43 @@
-[![View on Medium](https://img.shields.io/badge/Medium-View%20on%20Medium-blue?logo=medium)](https://towardsdatascience.com/how-to-structure-an-ml-project-for-reproducibility-and-maintainability-54d5e53b4c82?sk=c3d05ae5b8ccc95822618d0dacfad8a4)
+# Fedrated IDS Research Lab
 
-# Data Science Cookie Cutter
 ## Quick Start
+
 ### Set up the environment
+
 1. Install [Poetry](https://python-poetry.org/docs/#installation)
 2. Set up the environment:
+
 ```bash
 make setup
 make activate
 ```
+
 ### Install new packages
+
 To install new PyPI packages, run:
+
 ```bash
 poetry add <package-name>
 ```
 
 ### Run Python scripts
+
 To run the Python scripts to process data, train model, and run a notebook, type the following:
+
 ```bash
 make pipeline
 ```
+
 ### View all flow runs
+
 A [flow](https://docs.prefect.io/concepts/flows/) is the basis of all Prefect workflows.
 
 To view your flow runs from a UI, sign in to your [Prefect Cloud](https://app.prefect.cloud/) account or spin up a Prefect Orion server on your local machine:
+
 ```bash
 prefect orion start
 ```
+
 Open the URL http://127.0.0.1:4200/, and you should see the Prefect UI:
 
 ![](images/prefect_cloud.png)
@@ -48,6 +59,7 @@ make docs_save
 ```
 
 ### Run tests when creating a PR
-When creating a PR, the tests in your `tests` folder will automatically run. 
+
+When creating a PR, the tests in your `tests` folder will automatically run.
 
 ![](images/github_actions.png)

@@ -13,11 +13,25 @@ activate:
 
 download_data:
 	@echo "Downloading data..."
-	wget http://205.174.165.80/CICDataset/CIC-IDS-2017/Dataset/MachineLearningCSV.zip -O data/raw/dataset.zip
-	unzip data/raw/dataset.zip -d data/raw/
-	rm data/raw/dataset.zip
+	wget http://205.174.165.80/CICDataset/CIC-IDS-2017/Dataset/MachineLearningCSV.zip -P data/raw
+	unzip data/raw/MachineLearningCSV.zip -d data/raw
+	mv data/raw/MachineLearningCVE/* data/raw
+	rm -rf data/raw/MachineLearningCVE
+	rm data/raw/MachineLearningCSV.zip
 
 setup: initialize_git install download_data
+
+data/processed/dataset.csv: data/raw
+	@echo "Preprocessing data..."
+	python src/preprocess.py
+
+data/final/test.pkl: data/processed/dataset.csv
+	@echo "Creating test & train sets..."
+	python src/process.py
+
+models/centralized.pkl: data/final/test.pkl
+	@echo "Create & Optimize Centralized Model..."
+	python src/train_model.py CENTRALIZED
 
 test:
 	pytest
@@ -30,19 +44,28 @@ docs_save:
 	@echo Save documentation to docs... 
 	PYTHONPATH=src pdoc src -o docs
 
-data/processed/xy.pkl: data/raw src/process.py
+data/processed/$(model_id).pkl: data/raw src/process.py
 	@echo "Processing data..."
-	python src/process.py
+	python src/process.py $(model_id)
 
-models/svc.pkl: data/processed/xy.pkl src/train_model.py
+models/$(model_id).pkl: data/processed/xy.pkl src/train_model.py
 	@echo "Training model..."
-	python src/train_model.py
+	python src/train_model.py $(model_id)
 
 notebooks/results.ipynb: models/svc.pkl src/run_notebook.py
 	@echo "Running notebook..."
 	python src/run_notebook.py
 
-pipeline: data/processed/xy.pkl models/svc.pkl notebooks/results.ipynb
+status:
+	@echo "Launching $(model_id) pipeline:"
+
+# model_id="CENTRILIZED" | "FEDRATED_GLOBAL" | "<int>TH_LOCAL_CENTRALIZED"
+pipeline: status data/processed/dataset.csv data/processed/$(model_id).pkl models/$(model_id).pkl notebooks/results.ipynb
+
+centralized_pipeline_start:
+	@echo "Launching Centralized Pipeline..."
+
+centralized_pipeline: centralized_pipeline_start data/final/test.pkl models/centralized.pkl
 
 ## Delete all compiled Python files
 clean:
