@@ -29,9 +29,13 @@ data/processed/test.pkl: data/processed/dataset.csv
 	@echo "Creating test & train sets..."
 	python src/process.py
 
-models/centralized.pkl: data/processed/test.pkl
+models/centralized_model.pkl: data/processed/test.pkl
 	@echo "Create & Optimize Centralized Model..."
 	python src/train_model.py CENTRALIZED
+
+notebooks/centralized_results.ipynb: models/centralized_model.pkl data/final/centralized_predictions.pkl
+	@echo "Generating Centralized Results..."
+	python src/run_notebook.py CENTRALIZED
 
 test:
 	pytest
@@ -53,11 +57,11 @@ models/$(model_id).pkl: data/processed/xy.pkl src/train_model.py
 	python src/train_model.py $(model_id)
 
 notebooks/results.ipynb: models/svc.pkl src/run_notebook.py
-	@echo "Running notebook..."
-	python src/run_notebook.py
+	@echo "Running $(model_id) notebook..."
+	python src/run_notebook.py $(model_id)
 
 status:
-	@echo "Launching $(model_id) pipeline:"
+	@echo "Launching $(model_id) Pipeline..."
 
 # model_id="CENTRILIZED" | "FEDRATED_GLOBAL" | "<int>TH_LOCAL_CENTRALIZED"
 pipeline: status data/processed/dataset.csv data/processed/$(model_id).pkl models/$(model_id).pkl notebooks/results.ipynb
@@ -65,7 +69,7 @@ pipeline: status data/processed/dataset.csv data/processed/$(model_id).pkl model
 centralized_pipeline_start:
 	@echo "Launching Centralized Pipeline..."
 
-centralized_pipeline: centralized_pipeline_start data/processed/test.pkl models/centralized.pkl
+centralized_pipeline: centralized_pipeline_start data/processed/test.pkl models/centralized_model.pkl notebooks/centralized_results.ipynb
 
 ## Delete all compiled Python files
 clean:

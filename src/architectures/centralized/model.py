@@ -36,9 +36,7 @@ def report_best_scores(results, n_top=3):
 class CentralizedModel(Model):
     def __init__(self) -> None:
         """INIT Centrilized Model"""
-        self.model = xgb.XGBClassifier(
-            **PARAMS, tree_method="hist", random_state=75
-        )
+        self.model = xgb.XGBClassifier(tree_method="hist", random_state=75)
 
     def tune(self, x, y, params=CentralizedModelParams):
         """Tune Hyperparams"""
