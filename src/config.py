@@ -40,12 +40,12 @@ class Location(BaseModel):
     labels: str = "data/processed/labels.pkl"
     processed_data: str = "data/processed/dataset.csv"
     train_data: str = "data/processed/train.pkl"
-    test_data: str = "data/final/test.pkl"
+    test_data: str = "data/processed/test.pkl"
 
 
 CentralizedLocation = Location(
     train_data="data/processed/train.pkl",
-    model="model/centralized_model.pkl",
+    model="models/centralized_model.pkl",
     predictions="data/final/centralized_predictions.pkl",
 )
 
@@ -60,13 +60,13 @@ CentralizedModelParams = {
 
 FederatedLocation = Location(
     train_data="data/processed/train.pkl",
-    model="model/federated_model.pkl",
+    model="models/federated_model.pkl",
     predictions="data/final/fedrated_predictions.pkl",
 )
 
 SplitLocation = Location(
     train_data="data/processed/train.pkl",
-    model="model/split_model.pkl",
+    model="models/split_model.pkl",
     predictions="data/final/split_predictions.pkl",
 )
 

@@ -80,7 +80,7 @@ def train(
     model.train(train["X"], train["y"])
     predictions = predict(model, test["X"])
     save_model(model, save_path=location.model)
-    save_predictions(predictions, save_path=location.data_final)
+    save_predictions(predictions, save_path=location.predictions)
 
 
 if __name__ == "__main__":

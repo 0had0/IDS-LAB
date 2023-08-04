@@ -25,11 +25,11 @@ data/processed/dataset.csv: data/raw
 	@echo "Preprocessing data..."
 	python src/preprocess.py
 
-data/final/test.pkl: data/processed/dataset.csv
+data/processed/test.pkl: data/processed/dataset.csv
 	@echo "Creating test & train sets..."
 	python src/process.py
 
-models/centralized.pkl: data/final/test.pkl
+models/centralized.pkl: data/processed/test.pkl
 	@echo "Create & Optimize Centralized Model..."
 	python src/train_model.py CENTRALIZED
 
@@ -65,7 +65,7 @@ pipeline: status data/processed/dataset.csv data/processed/$(model_id).pkl model
 centralized_pipeline_start:
 	@echo "Launching Centralized Pipeline..."
 
-centralized_pipeline: centralized_pipeline_start data/final/test.pkl models/centralized.pkl
+centralized_pipeline: centralized_pipeline_start data/processed/test.pkl models/centralized.pkl
 
 ## Delete all compiled Python files
 clean:
