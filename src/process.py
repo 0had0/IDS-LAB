@@ -2,7 +2,7 @@ import joblib
 import pandas as pd
 from prefect import flow, task
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 from config import Location
 
@@ -22,9 +22,8 @@ def normalize(df):
 @task
 def encode_classes(arr):
     """Encode classes"""
-    le = LabelEncoder()
-    le.fit(arr)
-    return le.classes_, le.transform(arr)
+    oe = OneHotEncoder(sparse=False)
+    return oe.categories, oe.fit_transform([[x] for x in arr])
 
 
 @task
@@ -58,7 +57,7 @@ def split_out_target(df):
 def split(df, target):
     """split training and test sets"""
     X_train, X_test, y_train, y_test = train_test_split(
-        df, target, train_size=0.8, stratify=target, random_state=75
+        df, target, train_size=0.95, stratify=target, random_state=75
     )
 
     return {"X": X_train, "y": y_train}, {"X": X_test, "y": y_test}
