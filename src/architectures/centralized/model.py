@@ -33,21 +33,11 @@ def report_best_scores(results, n_top=3):
             print("")
 
 
-PARAMS = {
-    "colsample_bytree": 0.8123620356542087,
-    "gamma": 0.4753571532049581,
-    "learning_rate": 0.24959818254342153,
-    "max_depth": 2,
-    "n_estimators": 120,
-    "subsample": 0.6624074561769746,
-}
-
-
 class CentralizedModel(Model):
     def __init__(self) -> None:
         """INIT Centrilized Model"""
         self.model = xgb.XGBClassifier(
-            **PARAMS, objective="multi:softprob", random_state=75
+            **PARAMS, tree_method="hist", random_state=75
         )
 
     def tune(self, x, y, params=CentralizedModelParams):
@@ -64,15 +54,15 @@ class CentralizedModel(Model):
         )
         self.search.fit(x, y, verbose=4)
         self.model = xgb.XGBClassifier(
-            **self.search.cv_results_.params[0],
-            objective="multi:softprob",
+            **self.search.best_params_,
+            tree_method="hist",
             random_state=75,
         )
 
     def train(self, x, y):
         """Train the Model"""
         X_train, X_val, y_train, y_val = train_test_split(
-            x, y, test_size=0.1, random_state=75
+            x, y, test_size=0.1, stratify=y, random_state=75
         )
-        # self.tune(X_val, y_val)
-        self.model.fit(X_train, y_train)
+        self.tune(X_val, y_val)
+        self.model.fit(X_train, y_train, verbose=4)

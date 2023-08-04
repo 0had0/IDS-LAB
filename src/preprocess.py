@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from prefect import flow
 
-from src.config import Location
+from config import Location
 
 
 def to_utf8(filename: str, encoding="latin1", blocksize=1048576):
