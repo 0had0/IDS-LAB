@@ -60,21 +60,28 @@ CentralizedModelParams = {
 }
 
 
-class FederatedLocation(Location):
+class FederatedLocationClass(Location):
     # Fedrated Learning Architecture Client number
-    clients_number: int = 3
+
+    clients_number: int
     train_data: str = ("data/processed/train.pkl",)
     model: str = ("models/federated_model.pkl",)
     predictions: str = ("data/final/fedrated_predictions.pkl",)
     results_notebook: str = ("notebooks/fedrated_results.ipynb",)
 
-    @classmethod
+    def __init__(self, clients_number=3, **data) -> None:
+        """My custom init!"""
+        super().__init__(clients_number=clients_number, **data)
+        self.clients_number = clients_number
+
     def get_client(self, client_index: int = -1) -> str:
         """Federated Learning Architecture Client data getter"""
         if client_index > self.clients_number or client_index == -1:
             raise ValueError(f"Client #{client_index} doesn't Exist")
         return f"data/processed/client_{client_index}.pkl"
 
+
+FederatedLocation = FederatedLocationClass(clients_number=3)
 
 SplitLocation = Location(
     train_data="data/processed/train.pkl",
