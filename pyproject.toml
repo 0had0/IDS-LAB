@@ -8,7 +8,7 @@ authors = ["Hadi Houssainy"]
 python = "^3.8"
 pdoc3 = "^0.10.0"
 notebook = "^6.4.10"
-prefect = "^2.7.6"
+prefect = "^2.11.3"
 scikit-learn = "^1.2.0"
 pandas = "^1.5.2"
 prefect-jupyter = "^0.2.0"
@@ -16,6 +16,8 @@ interrogate = "^1.5.0"
 joblib = "^1.2.0"
 xgboost = "^1.7.6"
 matplotlib = "^3.7.2"
+flwr = "^1.4.0"
+torch = "^2.0.1"
 
 
 [tool.poetry.dev-dependencies]
