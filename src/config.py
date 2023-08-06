@@ -64,10 +64,10 @@ class FederatedLocationClass(Location):
     # Fedrated Learning Architecture Client number
 
     clients_number: int
-    train_data: str = ("data/processed/train.pkl",)
-    model: str = ("models/federated_model.pkl",)
-    predictions: str = ("data/final/fedrated_predictions.pkl",)
-    results_notebook: str = ("notebooks/fedrated_results.ipynb",)
+    train_data: str = "data/processed/train.pkl"
+    model: str = "models/federated_model.pkl"
+    predictions: str = "data/final/fedrated_predictions.pkl"
+    results_notebook: str = "notebooks/fedrated_results.ipynb"
 
     def __init__(self, clients_number=3, **data) -> None:
         """My custom init!"""
