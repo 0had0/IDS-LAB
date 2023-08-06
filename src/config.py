@@ -3,7 +3,7 @@ create Pydantic models
 """
 from typing import List
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 from scipy.stats import randint, uniform
 
 
@@ -35,7 +35,7 @@ class Location(BaseModel):
 
     model: str = ""
     predictions: str = ""
-    results_notebook: str
+    results_notebook: str = ""
     labels: str = "data/processed/labels.pkl"
     processed_data: str = "data/processed/dataset.csv"
     train_data: str = "data/processed/train.pkl"
@@ -59,12 +59,22 @@ CentralizedModelParams = {
     "subsample": uniform(0.6, 0.4),
 }
 
-FederatedLocation = Location(
-    train_data="data/processed/train.pkl",
-    model="models/federated_model.pkl",
-    predictions="data/final/fedrated_predictions.pkl",
-    results_notebook="notebooks/fedrated_results.ipynb",
-)
+
+class FederatedLocation(Location):
+    # Fedrated Learning Architecture Client number
+    clients_number: int = 3
+    train_data: str = ("data/processed/train.pkl",)
+    model: str = ("models/federated_model.pkl",)
+    predictions: str = ("data/final/fedrated_predictions.pkl",)
+    results_notebook: str = ("notebooks/fedrated_results.ipynb",)
+
+    @classmethod
+    def get_client(self, client_index: int = -1) -> str:
+        """Federated Learning Architecture Client data getter"""
+        if client_index > self.clients_number or client_index == -1:
+            raise ValueError(f"Client #{client_index} doesn't Exist")
+        return f"data/processed/client_{client_index}.pkl"
+
 
 SplitLocation = Location(
     train_data="data/processed/train.pkl",
@@ -72,18 +82,6 @@ SplitLocation = Location(
     predictions="data/final/split_predictions.pkl",
     results_notebook="notebooks/split_results.ipynb",
 )
-
-
-class ProcessConfig(BaseModel):
-    """Specify the parameters of the `process` flow"""
-
-    drop_columns: List[str] = ["Id"]
-    label: str = "Species"
-    test_size: float = 0.3
-
-    _validated_test_size = validator("test_size", allow_reuse=True)(
-        must_be_non_negative
-    )
 
 
 class ModelParams(BaseModel):
