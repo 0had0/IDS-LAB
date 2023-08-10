@@ -63,10 +63,7 @@ def save_predictions(predictions: np.array, save_path: str):
 
 
 @flow
-def train(
-    model,
-    location: Location = Location(),
-):
+def train(model, location: Location = Location(), tune_model: bool = True):
     """Flow to train the model
 
     Parameters
@@ -77,7 +74,7 @@ def train(
         one of CentralizedModel, FedratedModel, SplitModel
     """
     train, test = get_processed_data(location.train_data, location.test_data)
-    model.train(train["X"], train["y"])
+    model.train(train["X"], train["y"], tune_model=tune_model)
     predictions = predict(model, test["X"])
     save_model(model, save_path=location.model)
     save_predictions(predictions, save_path=location.predictions)

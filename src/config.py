@@ -3,7 +3,7 @@ create Pydantic models
 """
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from scipy.stats import randint, uniform
 
 
@@ -42,6 +42,8 @@ class Location(BaseModel):
     test_data: str = "data/processed/test.pkl"
     results_template_notebook = "notebooks/templates/analyze_results.ipynb"
 
+    model_config = ConfigDict(extra="allow")
+
 
 CentralizedLocation = Location(
     train_data="data/processed/train.pkl",
@@ -78,7 +80,7 @@ class FederatedLocationClass(Location):
         """Federated Learning Architecture Client data getter"""
         if client_index > self.clients_number or client_index == -1:
             raise ValueError(f"Client #{client_index} doesn't Exist")
-        return f"data/processed/client_{client_index}.pkl"
+        return f"data/processed/federated_clients/client_{client_index}.pkl"
 
 
 FederatedLocation = FederatedLocationClass(clients_number=3)

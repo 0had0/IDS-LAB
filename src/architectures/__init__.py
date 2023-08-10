@@ -1,5 +1,5 @@
 from architectures.centralized.model import CentralizedModel
-from architectures.fedrated.model import FedratedModel
+from architectures.federated.model import FedratedModel
 from architectures.split.model import SplitModel
 from config import CentralizedLocation, FederatedLocation, SplitLocation
 

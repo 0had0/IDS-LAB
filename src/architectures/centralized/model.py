@@ -36,7 +36,9 @@ def report_best_scores(results, n_top=3):
 class CentralizedModel(Model):
     def __init__(self) -> None:
         """INIT Centrilized Model"""
-        self.model = xgb.XGBClassifier(tree_method="hist", random_state=75)
+        self.model = xgb.XGBClassifier(
+            tree_method="gpu_hist", gpu_id=0, random_state=75
+        )
 
     def tune(self, x, y, params=CentralizedModelParams):
         """Tune Hyperparams"""
@@ -53,14 +55,18 @@ class CentralizedModel(Model):
         self.search.fit(x, y, verbose=4)
         self.model = xgb.XGBClassifier(
             **self.search.best_params_,
-            tree_method="hist",
+            tree_method="gpu_hist",
+            gpu_id=0,
             random_state=75,
         )
 
-    def train(self, x, y):
+    def train(self, x, y, tune_model=True):
         """Train the Model"""
-        X_train, X_val, y_train, y_val = train_test_split(
-            x, y, test_size=0.1, stratify=y, random_state=75
-        )
-        self.tune(X_val, y_val)
+        if tune_model:
+            X_train, X_val, y_train, y_val = train_test_split(
+                x, y, test_size=0.1, stratify=y, random_state=75
+            )
+            self.tune(X_val, y_val)
+        else:
+            X_train, y_train = x, y
         self.model.fit(X_train, y_train, verbose=4)
