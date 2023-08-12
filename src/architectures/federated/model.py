@@ -2,17 +2,19 @@
 import sys
 from collections import OrderedDict
 from typing import List
-import numpy as np
+
+import flwr as fl
 import joblib
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split, TensorDataset
-import flwr as fl
-
-sys.path.append("src")
+from torch.utils.data import DataLoader, TensorDataset, random_split
 
 from config import FederatedLocation
 from utils import Model
+
+sys.path.append("src")
+
 
 DEVICE = torch.device("cpu")
 
@@ -20,6 +22,7 @@ DEVICE = torch.device("cpu")
 def load_datasets(
     location=FederatedLocation,
 ):
+    """Load datasets"""
     trainloaders = []
     valloaders = []
 
@@ -45,6 +48,8 @@ def load_datasets(
 
 
 class Net(nn.Module):
+    """Model Class"""
+
     def __init__(self, input_dim=78, output_units=15) -> None:
         super(Net, self).__init__()
         units = [64, 100]
@@ -66,10 +71,12 @@ class Net(nn.Module):
 
 
 def get_parameters(net) -> List[np.ndarray]:
+    """Get params"""
     return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
 
 def set_parameters(net, parameters: List[np.ndarray]):
+    """Set params"""
     params_dict = zip(net.state_dict().keys(), parameters)
     state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
     net.load_state_dict(state_dict, strict=True)
@@ -101,6 +108,8 @@ def train(net, trainloader, epochs: int):
 
 
 class FlowerClient(fl.client.NumPyClient):
+    """Fedrated Client"""
+
     def __init__(self, cid, net, trainloader, valloader):
         self.cid = cid
         self.net = net
@@ -108,16 +117,19 @@ class FlowerClient(fl.client.NumPyClient):
         self.valloader = valloader
 
     def get_parameters(self, config):
+        """Get params"""
         print(f"[Client {self.cid}] get_parameters")
         return get_parameters(self.net)
 
     def fit(self, parameters, config):
+        """fit client model"""
         print(f"[Client {self.cid}] fit, config: {config}")
         set_parameters(self.net, parameters)
         train(self.net, self.trainloader, epochs=1)
         return get_parameters(self.net), len(self.trainloader), {}
 
     def evaluate(self, parameters, config):
+        """evalute"""
         print(f"[Client {self.cid}] evaluate, config: {config}")
         set_parameters(self.net, parameters)
         loss, accuracy = test(self.net, self.valloader)
@@ -158,6 +170,7 @@ class FedratedModel(Model):
         return FlowerClient(cid, net, trainloader, valloader)
 
     def train(self):
+        """train fedrated global model"""
         # Specify client resources if you need GPU (defaults to 1 CPU and 0 GPU)
         client_resources = None
         if DEVICE.type == "cuda":
