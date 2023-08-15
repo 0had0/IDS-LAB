@@ -105,6 +105,10 @@ centralized_on_federated_clients_data_pipeline: data/processed/federated_clients
 	@echo "Launching Centralized Model on Fedrated Clients data..."
 	python src/experiements/centralized_clients.py
 
+binary_classification_per_clients: data/processed/dataset.csv
+	@echo "Launching Binary Classifier on each clients per splits..."
+	python src/experiements/Binary\ Classification\ Experiment/binary_classification.py
+
 # ========== Experimental Pipelines ==========>
 
 ## Delete all compiled Python files

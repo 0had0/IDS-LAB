@@ -9,7 +9,7 @@ from architectures import get_architecture
 
 
 @flow
-def run_notebook(location: Location):
+def run_notebook(location: Location, params):
     """Run a notebook with specified parameters then
     generate a notebook with the outputs
 
@@ -18,12 +18,16 @@ def run_notebook(location: Location):
     location : Location, optional
         Locations of inputs and outputs, by default Location()
     """
-    nb = notebook.execute_notebook(
-        location.results_template_notebook,
-        parameters={
+
+    if not params:
+        params = {
             "test_data_location": location.test_data,
             "predictions_location": location.predictions,
-        },
+        }
+
+    nb = notebook.execute_notebook(
+        location.results_template_notebook,
+        parameters=params,
     )
     body = notebook.export_notebook(nb)
     with open(location.results_notebook, "w") as f:

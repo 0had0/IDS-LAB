@@ -64,13 +64,21 @@ def random_sized_split(x: np.ndarray, y: np.ndarray, n: int):
     """
     random_sized_split: split data to random sizes.
     """
+
+    def split(_x, _train_size):
+        indices = np.arange(len(_x))
+        np.random.shuffle(indices)
+
+        split_idx = int(_train_size * len(_x))
+
+        return _x[indices[:split_idx]], _x[indices[split_idx:]]
+
     split_percentage = 1 / n
     chunks = []
     x_next, y_next = x, y
     for _ in range(n - 1):
-        x_chunk, x_next, y_chunk, y_next = train_test_split(
-            x_next, y_next, train_size=split_percentage, random_state=75
-        )
+        x_chunk, x_next = split(x_next, split_percentage)
+        y_chunk, y_next = split(y_next, split_percentage)
         chunks.append((x_chunk, y_chunk))
     if len(x_next):
         chunks.append((x_next, y_next))
@@ -80,6 +88,6 @@ def random_sized_split(x: np.ndarray, y: np.ndarray, n: int):
 
 def chunks_generator(x, y, n):
     """Data Chunks Generator"""
-    yield straitified_split(x, y, n)
-    yield random_split(x, y, n)
-    yield random_sized_split(x, y, n)
+    yield straitified_split(x, y, n), "Straitified Split"
+    yield random_split(x, y, n), "Random Split (== size)"
+    yield random_sized_split(x, y, n), "Random Split (!= size)"
