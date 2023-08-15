@@ -30,6 +30,20 @@ def must_be_non_negative(v: float) -> float:
     return v
 
 
+class PipelineConfig(BaseModel):
+    """Pipeline Configuration Object"""
+
+    inputs: list[str]
+    output: list[str]
+    params: dict = {}
+
+
+data_preparation_config = PipelineConfig(
+    input=["data/raw/*.csv"],
+    output=["data/processed/test.csv", "data/processed/train-val.csv"],
+)
+
+
 class Location(BaseModel):
     """Specify the locations of inputs and outputs"""
 
