@@ -9,6 +9,7 @@ from sklearn.calibration import LabelEncoder
 from sklearn.model_selection import train_test_split
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import SMOTE
+from sklearn.utils import shuffle
 
 sys.path.append("src")
 
@@ -35,8 +36,9 @@ def predict(model, x):
 
 @flow
 def experiment(location=experimentLocation):
-    # """Experiment flow"""
+    """Experiment flow"""
     df = pd.read_csv(location.processed_data)
+    df = shuffle(df)
 
     encoder = LabelEncoder()
 
@@ -67,11 +69,12 @@ def experiment(location=experimentLocation):
         for split_features, split_labels in splits:
             values, counts = np.unique(split_labels, return_counts=True)
 
+            _X, _y = split_features, get_binary_labels(split_labels)
+
             over = SMOTE()
             under = RandomUnderSampler(sampling_strategy=0.5)
-            _X, _y = under.fit_resample(
-                split_features, get_binary_labels(split_labels)
-            )
+
+            _X, _y = under.fit_resample(_X, _y)
 
             _X, _y = over.fit_resample(_X, _y)
 

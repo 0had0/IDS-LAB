@@ -42,24 +42,6 @@ def straitified_split(x: np.ndarray, y: np.ndarray, n: int):
     return chunks
 
 
-def random_split(x: np.ndarray, y: np.ndarray, n: int):
-    """
-    random_split: split data randomly to same size.
-    """
-    split_size = len(x) // n
-    chunks = []
-    x_next, y_next = x, y
-    for _ in range(n - 1):
-        x_chunk, x_next, y_chunk, y_next = train_test_split(
-            x_next, y_next, train_size=split_size, random_state=75
-        )
-        chunks.append((x_chunk, y_chunk))
-    if len(x_next):
-        chunks.append((x_next, y_next))
-
-    return chunks
-
-
 def random_sized_split(x: np.ndarray, y: np.ndarray, n: int):
     """
     random_sized_split: split data to random sizes.
@@ -89,5 +71,4 @@ def random_sized_split(x: np.ndarray, y: np.ndarray, n: int):
 def chunks_generator(x, y, n):
     """Data Chunks Generator"""
     yield straitified_split(x, y, n), "Straitified Split"
-    yield random_split(x, y, n), "Random Split (== size)"
     yield random_sized_split(x, y, n), "Random Split (!= size)"
