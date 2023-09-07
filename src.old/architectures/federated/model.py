@@ -6,17 +6,20 @@ from typing import List
 import flwr as fl
 import joblib
 import numpy as np
+from sklearn.preprocessing import OneHotEncoder
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
-from config import FederatedLocation
-from utils import Model
-
 sys.path.append("src")
 
+from config import FederatedLocation
+from utils import Model, straitified_split
 
-DEVICE = torch.device("cpu")
+
+DEVICE = torch.device("cuda")
+
+oe = OneHotEncoder(sparse=False)
 
 
 def load_datasets(
@@ -26,9 +29,15 @@ def load_datasets(
     trainloaders = []
     valloaders = []
 
-    for client_id in range(location.clients_number):
-        data = joblib.load(location.get_client(client_id))
-        X, y = torch.Tensor(data["X"]), torch.Tensor(data["y"].values)
+    data = joblib.load(location.train_data)
+    chunks = straitified_split(
+        data["X"].values, data["y"], location.clients_number
+    )
+    del data
+    for X, y in chunks:
+        y = oe.fit_transform([[_x] for _x in y])
+        X, y = torch.Tensor(X), torch.Tensor(y)
+        assert X.shape[0] == y.shape[0]
         ds = TensorDataset(X, y)
         len_val = len(ds) // 10  # 10 % validation set
         len_train = len(ds) - len_val
@@ -38,19 +47,22 @@ def load_datasets(
         )
         trainloaders.append(DataLoader(ds_train, batch_size=32, shuffle=True))
         valloaders.append(DataLoader(ds_val, batch_size=32))
+        del X, y, ds, ds_train, ds_val, len_val, len_train, lengths
 
+    del chunks
     testset = joblib.load(location.test_data)
     print(f"type of X {type(testset['X'])}, type of y {type(testset['y'])}")
     X, y = torch.Tensor(testset["X"].values), torch.Tensor(testset["y"])
     testloader = DataLoader(TensorDataset(X, y), batch_size=32)
 
+    del X, y, testset
     return trainloaders, valloaders, testloader
 
 
 class Net(nn.Module):
     """Model Class"""
 
-    def __init__(self, input_dim=78, output_units=15) -> None:
+    def __init__(self, input_dim=78, output_units=14) -> None:
         super(Net, self).__init__()
         units = [64, 100]
         self.layer1 = nn.Linear(input_dim, units[0])
@@ -70,18 +82,6 @@ class Net(nn.Module):
         return x
 
 
-def get_parameters(net) -> List[np.ndarray]:
-    """Get params"""
-    return [val.cpu().numpy() for _, val in net.state_dict().items()]
-
-
-def set_parameters(net, parameters: List[np.ndarray]):
-    """Set params"""
-    params_dict = zip(net.state_dict().keys(), parameters)
-    state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
-    net.load_state_dict(state_dict, strict=True)
-
-
 def train(net, trainloader, epochs: int):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
@@ -89,11 +89,15 @@ def train(net, trainloader, epochs: int):
     net.train()
     for epoch in range(epochs):
         correct, total, epoch_loss = 0, 0, 0.0
-        for images, labels in trainloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
+        for features, labels in trainloader:
+            labels = labels.type(torch.LongTensor)
+            features, labels = features.to(DEVICE), labels.to(DEVICE)
             optimizer.zero_grad()
-            outputs = net(images)
-            loss = criterion(net(images), labels)
+            outputs = net(features)
+            loss = criterion(
+                torch.max(net(features), 1).values,
+                torch.max(labels.float(), 1).values,
+            )
             loss.backward()
             optimizer.step()
             # Metrics
@@ -105,6 +109,57 @@ def train(net, trainloader, epochs: int):
         print(
             f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}"
         )
+
+
+def test(net, testloader):
+    """Evaluate the network on the entire test set."""
+    criterion = torch.nn.CrossEntropyLoss()
+    correct, total, loss = 0, 0, 0.0
+    net.eval()
+    with torch.no_grad():
+        for data_points, labels in testloader:
+            data_points, labels = data_points.to(DEVICE), torch.max(
+                labels, 1
+            ).to(DEVICE)
+            outputs = net(data_points)
+            loss += criterion(outputs, labels).item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    loss /= len(testloader.dataset)
+    accuracy = correct / total
+    return loss, accuracy
+
+
+trainloaders, valloaders, testloader = load_datasets()
+trainloader = trainloaders[0]
+valloader = valloaders[0]
+net = Net().to(DEVICE)
+
+print(net)
+
+
+for epoch in range(5):
+    train(net, trainloader, 1)
+    loss, accuracy = test(net, valloader)
+    print(f"Epoch {epoch+1}: validation loss {loss}, accuracy {accuracy}")
+
+loss, accuracy = test(net, testloader)
+print(f"Final test set performance:\n\tloss {loss}\n\taccuracy {accuracy}")
+
+del trainloaders, valloaders, testloader
+
+
+def get_parameters(net) -> List[np.ndarray]:
+    """Get params"""
+    return [val.cpu().numpy() for _, val in net.state_dict().items()]
+
+
+def set_parameters(net, parameters: List[np.ndarray]):
+    """Set params"""
+    params_dict = zip(net.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+    net.load_state_dict(state_dict, strict=True)
 
 
 class FlowerClient(fl.client.NumPyClient):
@@ -134,26 +189,6 @@ class FlowerClient(fl.client.NumPyClient):
         set_parameters(self.net, parameters)
         loss, accuracy = test(self.net, self.valloader)
         return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
-
-
-def test(net, testloader):
-    """Evaluate the network on the entire test set."""
-    criterion = torch.nn.CrossEntropyLoss()
-    correct, total, loss = 0, 0, 0.0
-    net.eval()
-    with torch.no_grad():
-        for data_points, labels in testloader:
-            data_points, labels = data_points.to(DEVICE), torch.max(
-                labels, 1
-            ).to(DEVICE)
-            outputs = net(data_points)
-            loss += criterion(outputs, labels).item()
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-    loss /= len(testloader.dataset)
-    accuracy = correct / total
-    return loss, accuracy
 
 
 class FedratedModel(Model):
